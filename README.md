@@ -35,14 +35,14 @@ flowchart LR
 
 ### Componentes
 
-| Componente | Responsabilidad |
-|---|---|
-| Airflow webserver (`localhost:8080`) | Interfaz para ver el DAG, lanzarlo y consultar logs/estado de cada tarea |
-| Airflow scheduler | Programa y administra tareas; usa `LocalExecutor` para este laboratorio |
-| PostgreSQL | Guarda metadatos de Airflow: DAG runs, estados, usuarios y tareas; no guarda el dataset |
-| NameNode | Prepara el JSONL, recibe comandos del DAG, accede al dataset y ejecuta el cliente Hadoop |
-| HDFS / DataNodes | Guarda las partes de entrada y los resultados distribuidos |
-| YARN / NodeManagers | Ejecuta los mappers y reducers de cada análisis |
+| Componente                             | Responsabilidad                                                                          |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Airflow webserver (`localhost:8080`) | Interfaz para ver el DAG, lanzarlo y consultar logs/estado de cada tarea                 |
+| Airflow scheduler                      | Programa y administra tareas; usa `LocalExecutor` para este laboratorio                |
+| PostgreSQL                             | Guarda metadatos de Airflow: DAG runs, estados, usuarios y tareas; no guarda el dataset  |
+| NameNode                               | Prepara el JSONL, recibe comandos del DAG, accede al dataset y ejecuta el cliente Hadoop |
+| HDFS / DataNodes                       | Guarda las partes de entrada y los resultados distribuidos                               |
+| YARN / NodeManagers                    | Ejecuta los mappers y reducers de cada análisis                                         |
 
 Airflow se comunica con el NameNode mediante la API local de Docker (`/var/run/docker.sock`) para ejecutar los
 comandos del flujo. Esta configuración es práctica para un laboratorio en una sola máquina, pero el socket concede
@@ -79,7 +79,7 @@ make airflow-up            # inicia Hadoop y Airflow; la primera vez puede tarda
 make airflow-trigger       # lanza el DAG de transacciones
 ```
 
-Abre <http://localhost:8080>, inicia sesión con las credenciales de `.env` y selecciona `transactions_pipeline`.
+Abre [http://localhost:8080](http://localhost:8080), inicia sesión con las credenciales de `.env` y selecciona `transactions_pipeline`.
 El DAG se crea pausado; actívalo y pulsa **Trigger DAG**. El comando `make airflow-trigger` lo activa si hace falta
 y dispara una ejecución desde la terminal. El DAG está configurado sin calendario (`schedule=None`) porque el dataset
 actual es estático: se ejecuta cuando lo disparas y no procesa el mismo millón de registros cada día por accidente.
@@ -104,13 +104,13 @@ make test-local
 
 ## Análisis MapReduce
 
-| Job | Agrupación | Salida |
-|---|---|---|
-| `avg_by_category` | Categoría | Monto promedio, monto total y cantidad de transacciones |
-| `peak_hours` | Hora del día | Número de transacciones por hora |
-| `top_merchants` | Comercio | Los 10 comercios con más transacciones |
-| `fraud_by_city` | Ciudad | Cantidad fraudulenta, total y tasa de fraude |
-| `payment_methods` | Método de pago | Cantidad de transacciones y monto total |
+| Job                 | Agrupación     | Salida                                                  |
+| ------------------- | --------------- | ------------------------------------------------------- |
+| `avg_by_category` | Categoría      | Monto promedio, monto total y cantidad de transacciones |
+| `peak_hours`      | Hora del día   | Número de transacciones por hora                       |
+| `top_merchants`   | Comercio        | Los 10 comercios con más transacciones                 |
+| `fraud_by_city`   | Ciudad          | Cantidad fraudulenta, total y tasa de fraude            |
+| `payment_methods` | Método de pago | Cantidad de transacciones y monto total                 |
 
 Los combiners agregan sumas y conteos (no promedios parciales). Los registros inválidos se omiten y se registran en
 contadores de Hadoop.
@@ -120,12 +120,12 @@ contadores de Hadoop.
 Las variables opcionales están en `.env.example`; copia el archivo a `.env` y cambia la contraseña antes de iniciar
 Airflow:
 
-| Variable | Uso |
-|---|---|
-| `AIRFLOW_ADMIN_USERNAME` | Usuario administrador de la UI (por defecto `admin`) |
-| `AIRFLOW_ADMIN_PASSWORD` | Contraseña local de la UI (el ejemplo es solo para desarrollo) |
-| `AIRFLOW_UID` | UID con el que corre Airflow en Linux |
-| `DOCKER_GID` | Grupo dueño del socket Docker en Linux/WSL; si hay error de permisos, usa `stat -c '%g' /var/run/docker.sock` |
+| Variable                   | Uso                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `AIRFLOW_ADMIN_USERNAME` | Usuario administrador de la UI (por defecto `admin`)                                                           |
+| `AIRFLOW_ADMIN_PASSWORD` | Contraseña local de la UI (el ejemplo es solo para desarrollo)                                                  |
+| `AIRFLOW_UID`            | UID con el que corre Airflow en Linux                                                                            |
+| `DOCKER_GID`             | Grupo dueño del socket Docker en Linux/WSL; si hay error de permisos, usa `stat -c '%g' /var/run/docker.sock` |
 
 El usuario se crea durante la inicialización de Airflow y no se duplica si ya existe. Si cambias la contraseña en
 `.env` después de que ese usuario fue creado, actualízala en Airflow o elimina la base de datos **solo si aceptas
@@ -142,35 +142,35 @@ make down              # detener todos los contenedores, conservar volúmenes
 make clean             # eliminar contenedores, volúmenes y datos generados
 ```
 
-Interfaces del clúster: HDFS <http://localhost:9870>, YARN <http://localhost:8088> e historial MapReduce
-<http://localhost:19888>.
+Interfaces del clúster: HDFS [http://localhost:9870](http://localhost:9870), YARN [http://localhost:8088](http://localhost:8088) e historial MapReduce
+[http://localhost:19888](http://localhost:19888).
 
 Para consultar una salida en HDFS: `docker exec namenode hdfs dfs -cat /lab/output/top_merchants/part-*`.
 Las copias de resultados locales están en `results/*.tsv`.
 
 ## Preguntas frecuentes
 
-**¿Airflow procesa o guarda el JSON?**  
+**¿Airflow procesa o guarda el JSON?**
 No. Airflow coordina tareas. El NameNode lee el JSON original montado en solo lectura, lo convierte a JSONL y
 Hadoop procesa las partes en HDFS.
 
-**¿Dónde se guardan los datos?**  
+**¿Dónde se guardan los datos?**
 El original permanece en su ubicación; las partes convertidas quedan en `data/transactions/`; la entrada procesable
 y las salidas de jobs quedan en HDFS, respaldado por volúmenes Docker; las salidas TSV también quedan en `results/`.
 PostgreSQL solo guarda metadatos de Airflow.
 
-**¿Qué pasa si falla un job?**  
+**¿Qué pasa si falla un job?**
 Airflow muestra el log de esa tarea y la reintenta una vez. Si sigue fallando, las tareas posteriores quedan
 bloqueadas y el DAG aparece como fallido; corrige la causa y vuelve a dispararlo.
 
-**¿Se ejecuta automáticamente cada día?**  
+**¿Se ejecuta automáticamente cada día?**
 No. El dataset es estático y el DAG es manual para evitar reprocesar la misma entrada sin necesidad. Si luego se
 incorporan archivos nuevos periódicamente, se puede definir un calendario o un sensor de archivos.
 
-**¿Puedo correr solo Hadoop?**  
+**¿Puedo correr solo Hadoop?**
 Sí. Usa `make up`, `make load`, `make jobs` y `make verify`; Airflow es opcional.
 
-**¿Cómo borro Airflow sin borrar el historial?**  
+**¿Cómo borro Airflow sin borrar el historial?**
 `make airflow-down` detiene sus servicios y conserva PostgreSQL. `make down` detiene todo y conserva los volúmenes.
 `make clean` sí elimina los volúmenes, el historial y los resultados generados.
 
