@@ -6,31 +6,55 @@ el flujo; Hadoop Streaming ejecuta cinco análisis MapReduce sobre el dataset de
 ## Arquitectura
 
 ```mermaid
-flowchart LR
-    JSON["dataset_transacciones_1_millon.json<br/>archivo original, solo lectura"]
-    PREP["Airflow task<br/>prepare_jsonl"]
-    PARTS["data/transactions/<br/>10 partes JSONL"]
-    LOAD["Airflow task<br/>load_hdfs"]
-    HDFS["HDFS<br/>/lab/input/transactions"]
-    subgraph AIRFLOW["Airflow: UI + Scheduler + LocalExecutor"]
+%%{init: {"theme":"base","themeVariables":{"fontSize":"18px","fontFamily":"Arial","lineColor":"#64748b"},"flowchart":{"htmlLabels":true,"nodeSpacing":55,"rankSpacing":75,"curve":"basis"}}}%%
+flowchart TB
+    subgraph HOST["EQUIPO HOST · ARCHIVOS LOCALES"]
         direction TB
-        DAG["transactions_pipeline DAG"]
-        PREP --> LOAD
-        LOAD --> J1["run_avg_by_category"]
-        J1 --> J2["run_peak_hours"]
-        J2 --> J3["run_top_merchants"]
-        J3 --> J4["run_fraud_by_city"]
-        J4 --> J5["run_payment_methods"]
-        J5 --> VALID["validate_outputs"]
+        JSON["Dataset original<br/>dataset_transacciones_1_millon.json<br/><b>Solo lectura</b>"]
+        PARTS["Archivos preparados<br/>data/transactions/<br/>10 partes JSONL"]
+        TSV["Resultados consultables<br/>results/*.tsv"]
     end
-    JSON --> PREP
-    PREP --> PARTS
-    PARTS --> LOAD
-    LOAD --> HDFS
-    HDFS --> JOBS["YARN + Hadoop Streaming<br/>NameNode / NodeManagers"]
-    JOBS --> RESULTS["HDFS /lab/output/<job><br/>y también results/*.tsv"]
-    RESULTS --> VALID
-    META["PostgreSQL<br/>estado de Airflow y ejecuciones"] --- AIRFLOW
+
+    subgraph AIRFLOW["ORQUESTACIÓN · APACHE AIRFLOW"]
+        direction TB
+        UI["Webserver<br/>Interfaz y logs"]
+        SCHED["Scheduler<br/>LocalExecutor"]
+        DAG["DAG · transactions_pipeline<br/>prepare_jsonl → load_hdfs<br/>5 análisis MapReduce → validate_outputs"]
+        META[("PostgreSQL<br/>Metadatos y ejecuciones")]
+        UI --- SCHED
+        SCHED --> DAG
+        META --- UI
+        META --- SCHED
+    end
+
+    subgraph HADOOP["PROCESAMIENTO DISTRIBUIDO · HADOOP"]
+        direction TB
+        NN["NameNode<br/>Prepara datos y lanza jobs"]
+        HDFS[("HDFS<br/>/lab/input/transactions<br/>/lab/output/&lt;job&gt;")]
+        YARN["YARN + Hadoop Streaming<br/>ResourceManager<br/>2 NodeManagers"]
+        DN["Almacenamiento HDFS<br/>3 DataNodes"]
+        NN --> HDFS
+        HDFS --> YARN
+        YARN --> HDFS
+        HDFS --- DN
+    end
+
+    JSON -->|"montaje de solo lectura"| NN
+    DAG -. "Docker SDK · docker.sock" .-> NN
+    NN -->|"genera JSONL"| PARTS
+    PARTS -->|"carga a HDFS"| HDFS
+    HDFS -->|"salidas copiadas al host"| TSV
+    DAG -. "valida resultados" .-> NN
+
+    classDef data fill:#eaf2ff,stroke:#3973ac,stroke-width:2px,color:#14263d
+    classDef orchestration fill:#f2eaff,stroke:#7952a3,stroke-width:2px,color:#26153d
+    classDef compute fill:#e9f7ef,stroke:#37845a,stroke-width:2px,color:#153321
+    class JSON,PARTS,TSV data
+    class UI,SCHED,DAG,META orchestration
+    class NN,HDFS,YARN,DN compute
+    style HOST fill:#f7faff,stroke:#8ba9ca,stroke-width:2px
+    style AIRFLOW fill:#fbf8ff,stroke:#a78ac7,stroke-width:2px
+    style HADOOP fill:#f5fbf7,stroke:#80b596,stroke-width:2px
 ```
 
 ### Componentes
