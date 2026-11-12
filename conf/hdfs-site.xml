@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<configuration>
+  <!-- Cada bloque se guarda en 2 DataNodes (hay 3: sobra uno para re-replicar ante una caída) -->
+  <property><name>dfs.replication</name><value>2</value></property>
+  <property><name>dfs.namenode.name.dir</name><value>file:///hadoop-data/name</value></property>
+  <property><name>dfs.datanode.data.dir</name><value>file:///hadoop-data/data</value></property>
+  <property><name>dfs.permissions.enabled</name><value>false</value></property>
+  <property><name>dfs.webhdfs.enabled</name><value>true</value></property>
+  <property><name>dfs.namenode.http-address</name><value>0.0.0.0:9870</value></property>
+  <!-- En Docker las IPs no tienen DNS inverso: se desactiva la comprobación -->
+  <property><name>dfs.namenode.datanode.registration.ip-hostname-check</name><value>false</value></property>
+  <!-- Detección rápida de DataNodes muertos (para el taller).
+       Tiempo hasta "Dead" = 2 * recheck-interval + 10 * heartbeat = 2*10s + 10*3s = 50 s (por defecto: ~10.5 min) -->
+  <property><name>dfs.heartbeat.interval</name><value>3</value></property>
+  <property><name>dfs.namenode.heartbeat.recheck-interval</name><value>10000</value></property>
+</configuration>

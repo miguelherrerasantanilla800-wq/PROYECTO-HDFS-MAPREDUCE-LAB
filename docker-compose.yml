@@ -1,0 +1,164 @@
+# Clúster Hadoop local: 1 NameNode + 3 DataNodes + ResourceManager + 2 NodeManagers + HistoryServer
+x-hadoop: &hadoop
+  build: .
+  image: hdfs-lab/hadoop:3.3.6
+  networks: [hadoop]
+
+x-airflow: &airflow
+  build: ./airflow
+  image: hdfs-lab/airflow:2.10.5
+  profiles: [airflow]
+  environment: &airflow-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+    AIRFLOW__WEBSERVER__SECRET_KEY: local-development-only
+    AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-admin}
+    AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+  user: "${AIRFLOW_UID:-50000}:0"
+  group_add:
+    - "${DOCKER_GID:-0}"
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags:ro
+    - ./airflow/init_admin.py:/opt/airflow/init_admin.py:ro
+    - airflow-logs:/opt/airflow/logs
+    - /var/run/docker.sock:/var/run/docker.sock
+  networks: [hadoop]
+
+services:
+  namenode:
+    <<: *hadoop
+    container_name: namenode
+    hostname: namenode
+    command: ["namenode"]
+    ports: ["9870:9870"]          # UI HDFS
+    volumes:
+      - namenode-data:/hadoop-data/name
+      - ./data:/lab/data
+      - ./results:/lab/results
+      - ../dataset_transacciones_1_millon.json:/lab/source/dataset_transacciones_1_millon.json:ro
+      - ./jobs:/lab/jobs:ro
+      - ./scripts:/lab/scripts:ro
+
+  datanode1:
+    <<: *hadoop
+    container_name: datanode1
+    hostname: datanode1
+    command: ["datanode"]
+    ports: ["9864:9864"]
+    volumes: [datanode1-data:/hadoop-data/data]
+    depends_on: [namenode]
+
+  datanode2:
+    <<: *hadoop
+    container_name: datanode2
+    hostname: datanode2
+    command: ["datanode"]
+    ports: ["9865:9864"]
+    volumes: [datanode2-data:/hadoop-data/data]
+    depends_on: [namenode]
+
+  datanode3:
+    <<: *hadoop
+    container_name: datanode3
+    hostname: datanode3
+    command: ["datanode"]
+    ports: ["9866:9864"]
+    volumes: [datanode3-data:/hadoop-data/data]
+    depends_on: [namenode]
+
+  resourcemanager:
+    <<: *hadoop
+    container_name: resourcemanager
+    hostname: resourcemanager
+    command: ["resourcemanager"]
+    ports: ["8088:8088"]          # UI YARN
+    depends_on: [namenode]
+
+  nodemanager1:
+    <<: *hadoop
+    container_name: nodemanager1
+    hostname: nodemanager1
+    command: ["nodemanager"]
+    ports: ["8042:8042"]
+    volumes: [nodemanager1-data:/hadoop-data/tmp]
+    depends_on: [resourcemanager, namenode]
+
+  nodemanager2:
+    <<: *hadoop
+    container_name: nodemanager2
+    hostname: nodemanager2
+    command: ["nodemanager"]
+    ports: ["8043:8042"]
+    volumes: [nodemanager2-data:/hadoop-data/tmp]
+    depends_on: [resourcemanager, namenode]
+
+  historyserver:
+    <<: *hadoop
+    container_name: historyserver
+    hostname: historyserver
+    command: ["historyserver"]
+    ports: ["19888:19888"]        # UI JobHistory
+    depends_on: [namenode, resourcemanager]
+
+  airflow-postgres:
+    image: postgres:15
+    profiles: [airflow]
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes: [airflow-postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [hadoop]
+
+  airflow-init:
+    <<: *airflow
+    command: ["bash", "-c", "airflow db migrate && python /opt/airflow/init_admin.py"]
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+
+  airflow-webserver:
+    <<: *airflow
+    command: ["webserver"]
+    ports: ["8080:8080"]
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  airflow-scheduler:
+    <<: *airflow
+    command: ["scheduler"]
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+networks:
+  hadoop:
+    name: hadoop-lab
+
+volumes:
+  namenode-data:
+  datanode1-data:
+  datanode2-data:
+  datanode3-data:
+  nodemanager1-data:
+  nodemanager2-data:
+  airflow-postgres-data:
+  airflow-logs:
