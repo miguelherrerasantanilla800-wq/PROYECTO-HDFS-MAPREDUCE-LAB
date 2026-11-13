@@ -304,5 +304,7 @@ HDFS/YARN realizan la recuperación; Airflow no sustituye esos mecanismos.
   los [tres DataNodes recuperados](./evidence/fault-tolerance/06-hdfs-datanodes-recovered.png) y
   el [job MapReduce exitoso](./evidence/fault-tolerance/07-yarn-job-success.png).
 
-Nota: el `fsck /` global ya reportaba 6 bloques under-replicated antes de estos experimentos y continuó reportándolos
-al final; el directorio de entrada usado por la prueba DataNode reportó 0 under-replicated y 0 bloques corruptos.
+Nota: el `fsck /` global reporta 6 bloques under-replicated en archivos temporales de envío de jobs bajo
+`/tmp/hadoop-yarn/staging/`: esos archivos piden replicación 10, pero este laboratorio tiene 3 DataNodes (los 3
+tienen una copia). No son bloques de la entrada ni de las salidas de análisis. El directorio probado en HDFS reportó
+0 under-replicated y 0 corruptos.
