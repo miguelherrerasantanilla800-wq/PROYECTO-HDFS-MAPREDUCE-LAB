@@ -1,0 +1,130 @@
+
+==> 1. Contenedores
+NAME                                     STATUS
+datanode1                                Up 2 hours
+datanode2                                Up 50 minutes
+datanode3                                Up 2 minutes
+hdfs-mapreduce-lab-airflow-postgres-1    Up 2 hours (healthy)
+hdfs-mapreduce-lab-airflow-scheduler-1   Up About an hour
+hdfs-mapreduce-lab-airflow-webserver-1   Up About an hour (healthy)
+historyserver                            Up 2 hours
+namenode                                 Up 2 hours
+nodemanager1                             Up 2 hours
+nodemanager2                             Up 26 minutes
+resourcemanager                          Up 2 hours
+
+==> 2. HDFS: resumen (DataNodes vivos/muertos, capacidad, bloques)
+Configured Capacity: 3243303530496 (2.95 TB)
+DFS Used: 547266518 (521.91 MB)
+DFS Used%: 0.02%
+Live datanodes (3):
+Name: 172.24.0.3:9866 (datanode3.hadoop-lab)
+Hostname: datanode3
+Configured Capacity: 1081101176832 (1006.85 GB)
+DFS Used: 261427165 (249.32 MB)
+DFS Used%: 0.02%
+Name: 172.24.0.4:9866 (datanode1.hadoop-lab)
+Hostname: datanode1
+Configured Capacity: 1081101176832 (1006.85 GB)
+DFS Used: 100896761 (96.22 MB)
+DFS Used%: 0.01%
+Name: 172.24.0.7:9866 (datanode2.hadoop-lab)
+Hostname: datanode2
+Configured Capacity: 1081101176832 (1006.85 GB)
+DFS Used: 184942592 (176.38 MB)
+DFS Used%: 0.02%
+
+==> 3. HDFS: salud del sistema de archivos (fsck)
+Status: HEALTHY
+ Number of data-nodes:	3
+ Total size:	281303786 B
+ Total files:	103
+ Total blocks (validated):	107 (avg. block size 2629007 B)
+ Under-replicated blocks:	6 (5.6074767 %)
+ Mis-replicated blocks:		0 (0.0 %)
+ Average block replication:	2.0560749
+ Corrupt blocks:		0
+ Total size:	0 B
+ Total files:	0
+ Corrupt block groups:		0
+
+==> 4. YARN: NodeManagers (RUNNING / LOST / UNHEALTHY ...)
+2026-11-13 01:59:55,838 INFO client.DefaultNoHARMFailoverProxyProvider: Connecting to ResourceManager at resourcemanager/172.24.0.5:8032
+Total Nodes:3
+         Node-Id	     Node-State	Node-Http-Address	Number-of-Running-Containers
+nodemanager2:39747	        RUNNING	nodemanager2:8042	                           0
+nodemanager1:42559	        RUNNING	nodemanager1:8042	                           0
+nodemanager2:41459	           LOST	nodemanager2:8042	                           0
+
+==> 5. YARN: aplicaciones y estado final (SUCCEEDED / FAILED / KILLED)
+Total number of applications (application-types: [], states: [NEW, NEW_SAVING, SUBMITTED, ACCEPTED, RUNNING, FINISHED, FAILED, KILLED] and tags: []):6
+                Application-Id	    Application-Name	    Application-Type	      User	     Queue	             State	       Final-State	       Progress	 
+application_1794529773044_0001	 lab-avg_by_category	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+application_1794529773044_0004	   lab-fraud_by_city	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+application_1794529773044_0005	 lab-payment_methods	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+application_1794529773044_0002	      lab-peak_hours	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+application_1794529773044_0003	   lab-top_merchants	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+application_1794529773044_0006	         lab-ft-slow	           MAPREDUCE	    hadoop	   default	          FINISHED	         SUCCEEDED	           100%	h
+
+==> 6. Salidas en HDFS
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 00:34 /lab/output/avg_by_category
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 00:34 /lab/output/avg_by_category/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        231 2026-11-13 00:34 /lab/output/avg_by_category/part-00000
+-rw-r--r--   2 hadoop supergroup        154 2026-11-13 00:34 /lab/output/avg_by_category/part-00001
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 00:36 /lab/output/fraud_by_city
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 00:36 /lab/output/fraud_by_city/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        298 2026-11-13 00:36 /lab/output/fraud_by_city/part-00000
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 01:33 /lab/output/ft_slow_wordcount
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 01:33 /lab/output/ft_slow_wordcount/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        461 2026-11-13 01:33 /lab/output/ft_slow_wordcount/part-00000
+-rw-r--r--   2 hadoop supergroup        535 2026-11-13 01:33 /lab/output/ft_slow_wordcount/part-00001
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 00:37 /lab/output/payment_methods
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 00:37 /lab/output/payment_methods/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        193 2026-11-13 00:37 /lab/output/payment_methods/part-00000
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 00:34 /lab/output/peak_hours
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 00:34 /lab/output/peak_hours/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        216 2026-11-13 00:34 /lab/output/peak_hours/part-00000
+drwxr-xr-x   - hadoop supergroup          0 2026-11-13 00:35 /lab/output/top_merchants
+-rw-r--r--   2 hadoop supergroup          0 2026-11-13 00:35 /lab/output/top_merchants/_SUCCESS
+-rw-r--r--   2 hadoop supergroup        184 2026-11-13 00:35 /lab/output/top_merchants/part-00000
+
+==> 7. Logs agregados del último job terminado (primeras líneas)
+Aplicación: application_1794529773044_0006
+Container: container_1794529773044_0006_01_000002 on nodemanager1_42559
+LogAggregationType: AGGREGATED
+=======================================================================
+LogType:directory.info
+LogLastModifiedTime:Fri Nov 13 01:33:28 +0000 2026
+LogLength:2424
+LogContents:
+ls -l:
+total 40
+-rw-r--r-- 1 hadoop hadoop  129 Nov 13 01:26 container_tokens
+-rwx------ 1 hadoop hadoop  725 Nov 13 01:26 default_container_executor.sh
+-rwx------ 1 hadoop hadoop  670 Nov 13 01:26 default_container_executor_session.sh
+lrwxrwxrwx 1 hadoop hadoop  107 Nov 13 01:26 job.jar -> /hadoop-data/tmp/nm-local-dir/usercache/hadoop/appcache/application_1794529773044_0006/filecache/11/job.jar
+lrwxrwxrwx 1 hadoop hadoop  107 Nov 13 01:26 job.xml -> /hadoop-data/tmp/nm-local-dir/usercache/hadoop/appcache/application_1794529773044_0006/filecache/13/job.xml
+-rwx------ 1 hadoop hadoop 5260 Nov 13 01:26 launch_container.sh
+lrwxrwxrwx 1 hadoop hadoop   69 Nov 13 01:26 mapper.py -> /hadoop-data/tmp/nm-local-dir/usercache/hadoop/filecache/29/mapper.py
+lrwxrwxrwx 1 hadoop hadoop   74 Nov 13 01:26 sum_reducer.py -> /hadoop-data/tmp/nm-local-dir/usercache/hadoop/filecache/28/sum_reducer.py
+drwx--x--- 2 hadoop hadoop 4096 Nov 13 01:26 tmp
+find -L . -maxdepth 5 -ls:
+   418651      4 drwx--x---   3 hadoop   hadoop       4096 Nov 13 01:26 .
+   418557    236 -r-x------   1 hadoop   hadoop     239909 Nov 13 01:26 ./job.xml
+   418539      4 drwx------   2 hadoop   hadoop       4096 Nov 13 01:26 ./job.jar
+   418541    140 -r-x------   1 hadoop   hadoop     139781 Nov 13 01:26 ./job.jar/job.jar
+   418668      4 -rwx------   1 hadoop   hadoop        670 Nov 13 01:26 ./default_container_executor_session.sh
+   418664      4 -rw-r--r--   1 hadoop   hadoop         12 Nov 13 01:26 ./.container_tokens.crc
+   418483      4 -r-x------   1 hadoop   hadoop        518 Nov 13 01:26 ./sum_reducer.py
+   418676      4 -rw-r--r--   1 hadoop   hadoop         16 Nov 13 01:26 ./.default_container_executor.sh.crc
+   418675      4 -rwx------   1 hadoop   hadoop        725 Nov 13 01:26 ./default_container_executor.sh
+   418655      4 drwx--x---   2 hadoop   hadoop       4096 Nov 13 01:26 ./tmp
+   418674      4 -rw-r--r--   1 hadoop   hadoop         16 Nov 13 01:26 ./.default_container_executor_session.sh.crc
+
+==> 8. Validación independiente de resultados (Python puro vs salida MapReduce)
+[INFO] 1000000 transacciones leídas para validar
+[PASS] avg_by_category   10 categorías; 1000000 transacciones
+[PASS] peak_hours        top-3 horas: 23h, 05h, 16h
+[PASS] top_merchants     10 comercios; top 1: Comercio_C (100389)
+[PASS] fraud_by_city     10 ciudades; 12006 transacciones fraudulentas
+[PASS] payment_methods   6 métodos; 1000000 transacciones

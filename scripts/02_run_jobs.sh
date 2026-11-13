@@ -18,8 +18,8 @@ if [ ${#FAILED[@]} -ne 0 ]; then
 fi
 
 ok "5/5 jobs SUCCEEDED"
-echo; echo "Horas pico (top 3):"; sort -t$'\t' -k2,2nr results/peak_hours.tsv | head -3
-echo; echo "Top 5 comercios:"; head -5 results/top_merchants.tsv
+echo; echo "Horas pico (top 3):"; head -1 results/peak_hours.tsv; tail -n +2 results/peak_hours.tsv | sort -t$'\t' -k2,2nr | head -3
+echo; echo "Top 5 comercios:"; head -6 results/top_merchants.tsv
 echo; echo "Promedio por categoría:"; column -t -s$'\t' results/avg_by_category.tsv 2>/dev/null || cat results/avg_by_category.tsv
 echo; echo "Fraude por ciudad:"; cat results/fraud_by_city.tsv
 echo; echo "Métodos de pago:"; cat results/payment_methods.tsv

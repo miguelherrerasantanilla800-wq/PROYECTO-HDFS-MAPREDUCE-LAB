@@ -19,7 +19,7 @@ T0=$(date +%s)
 
 log "Observando (dfs.heartbeat.interval=3s, recheck=10s -> 'Dead' tras ~50 s)"
 while :; do
-  L=$(live_dns); D=$(dead_dns); URB=$(nn hdfs dfsadmin -report 2>/dev/null | sed -n 's/^Under replicated blocks: //p')
+  L=$(live_dns); D=$(dead_dns); URB=$(nn hdfs fsck "$F" 2>/dev/null | sed -n 's/^ Under-replicated blocks:[[:space:]]*//p' | cut -d' ' -f1)
   printf '[t=%3ss] live=%s dead=%s under-replicated=%s\n' $(( $(date +%s)-T0 )) "${L:-?}" "${D:-0}" "${URB:-?}"
   [ "${D:-0}" -ge 1 ] && [ "${URB:-1}" = "0" ] && break
   [ $(( $(date +%s)-T0 )) -gt 240 ] && { warn "timeout"; break; }

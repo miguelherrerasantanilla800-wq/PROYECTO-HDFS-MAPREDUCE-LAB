@@ -1,0 +1,60 @@
+
+==> Lanzando job lento en segundo plano (log: results/ft_slow_job.log)
+
+==> Esperando que el job esté RUNNING...
+[OK] Aplicación: application_1794529773044_0006
+ApplicationMaster en: nodemanager1
+
+==> FALLA: docker kill nodemanager2  (caída abrupta mientras corren los Map)
+
+==> Observando estado del nodo y progreso del job
+[t=  4s] nodemanager2=RUNNING  job_progress=10.54%
+[t= 19s] nodemanager2=RUNNING  job_progress=13.93%
+[t= 33s] nodemanager2=RUNNING  job_progress=14.71%
+[t= 47s] nodemanager2=LOST  job_progress=14.44%
+[t= 61s] nodemanager2=LOST  job_progress=15.43%
+[t= 75s] nodemanager2=LOST  job_progress=18.12%
+[t= 89s] nodemanager2=LOST  job_progress=19.3%
+[t=103s] nodemanager2=LOST  job_progress=20.08%
+[t=117s] nodemanager2=LOST  job_progress=20.89%
+[t=131s] nodemanager2=LOST  job_progress=23.38%
+[t=145s] nodemanager2=LOST  job_progress=24.55%
+[t=159s] nodemanager2=LOST  job_progress=25.75%
+[t=173s] nodemanager2=LOST  job_progress=28.62%
+[t=187s] nodemanager2=LOST  job_progress=29.78%
+[t=202s] nodemanager2=LOST  job_progress=31.66%
+[t=216s] nodemanager2=LOST  job_progress=33.43%
+[t=230s] nodemanager2=LOST  job_progress=36.13%
+[t=244s] nodemanager2=LOST  job_progress=38.5%
+[t=258s] nodemanager2=LOST  job_progress=41.75%
+[t=271s] nodemanager2=LOST  job_progress=43.77%
+[t=285s] nodemanager2=LOST  job_progress=46.63%
+[t=299s] nodemanager2=LOST  job_progress=48.97%
+[t=313s] nodemanager2=LOST  job_progress=51.88%
+[t=327s] nodemanager2=LOST  job_progress=54.23%
+[t=342s] nodemanager2=LOST  job_progress=100%
+
+==> RESULTADO
+	Application-Name : lab-ft-slow
+	State : FINISHED
+	Final-State : SUCCEEDED
+--- Contadores relevantes del log del cliente:
+		Killed map tasks=5
+		Killed reduce tasks=1
+		Launched map tasks=24
+		Launched reduce tasks=2
+		Rack-local map tasks=20
+--- Mensajes de reintento en el log:
+[OK] El job TERMINÓ con éxito pese a perder nodemanager2
+
+==> RECUPERACIÓN: docker start nodemanager2
+
+==> Esperando clúster (3 DataNodes, 2 NodeManagers)...
+.
+[OK] Clúster listo en ~5s
+2026-11-13 01:33:54,627 INFO client.DefaultNoHARMFailoverProxyProvider: Connecting to ResourceManager at resourcemanager/172.24.0.5:8032
+Total Nodes:3
+         Node-Id	     Node-State	Node-Http-Address	Number-of-Running-Containers
+nodemanager2:39747	        RUNNING	nodemanager2:8042	                           0
+nodemanager1:42559	        RUNNING	nodemanager1:8042	                           0
+nodemanager2:41459	           LOST	nodemanager2:8042	                           0

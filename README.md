@@ -30,7 +30,7 @@ flowchart TB
     subgraph HADOOP["PROCESAMIENTO DISTRIBUIDO · HADOOP"]
         direction TB
         NN["NameNode<br/>Prepara datos y lanza jobs"]
-        HDFS[("HDFS<br/>/lab/input/transactions<br/>/lab/output/&lt;job&gt;")]
+        HDFS[("HDFS<br/>/lab/input/transactions<br/>/lab/output/<job>")]
         YARN["YARN + Hadoop Streaming<br/>ResourceManager<br/>2 NodeManagers"]
         DN["Almacenamiento HDFS<br/>3 DataNodes"]
         NN --> HDFS
@@ -92,13 +92,40 @@ los volúmenes de HDFS/PostgreSQL/Airflow, las partes generadas y los resultados
 
 ## Inicio rápido
 
-Requisitos: Docker + Docker Compose v2, y al menos 8 GB de RAM disponibles para Docker. En Windows usa Git Bash o
-WSL2 con integración de Docker Desktop habilitada. La primera construcción descarga Hadoop y la imagen de Airflow.
+Requisitos: Docker Desktop con el motor iniciado, Docker Compose v2 y al menos 8 GB de RAM disponibles para Docker.
+La primera construcción descarga Hadoop y la imagen de Airflow. Ejecuta los comandos desde `hdfs-mapreduce-lab/`,
+la carpeta que contiene `docker-compose.yml`. En Windows PowerShell, si abriste la carpeta padre del proyecto,
+entra primero con `Set-Location .\hdfs-mapreduce-lab`.
 
-Desde `hdfs-mapreduce-lab/`:
+### Windows PowerShell
+
+No necesitas `make` para iniciar el proyecto desde PowerShell. Crea `.env` solo si todavía no existe y cambia
+la contraseña de desarrollo antes de iniciar Airflow:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+
+# Construye y levanta Hadoop
+docker compose up -d --build
+
+# Levanta Airflow y espera a que sus servicios estén listos
+docker compose --profile airflow up -d --build --wait airflow-webserver airflow-scheduler
+
+# Activa y dispara el DAG
+docker compose --profile airflow exec airflow-webserver airflow dags unpause transactions_pipeline
+docker compose --profile airflow exec airflow-webserver airflow dags trigger transactions_pipeline
+```
+
+Puedes comprobar el estado con `docker compose --profile airflow ps`. Abre [http://localhost:8080](http://localhost:8080)
+e inicia sesión con las credenciales definidas en `.env`.
+
+### Git Bash o WSL2
+
+En Windows también puedes usar Git Bash o WSL2 con la integración de Docker Desktop habilitada. Los atajos de
+`make` requieren además tener GNU Make instalado:
 
 ```bash
-cp .env.example .env       # configura credenciales locales de Airflow
+if [ ! -f .env ]; then cp .env.example .env; fi
 make airflow-up            # inicia Hadoop y Airflow; la primera vez puede tardar
 make airflow-trigger       # lanza el DAG de transacciones
 ```
@@ -128,13 +155,15 @@ make test-local
 
 ## Análisis MapReduce
 
-| Job                 | Agrupación     | Salida                                                  |
-| ------------------- | --------------- | ------------------------------------------------------- |
-| `avg_by_category` | Categoría      | Monto promedio, monto total y cantidad de transacciones |
-| `peak_hours`      | Hora del día   | Número de transacciones por hora                       |
-| `top_merchants`   | Comercio        | Los 10 comercios con más transacciones                 |
-| `fraud_by_city`   | Ciudad          | Cantidad fraudulenta, total y tasa de fraude            |
-| `payment_methods` | Método de pago | Cantidad de transacciones y monto total                 |
+Los archivos de `results/*.tsv` incluyen una fila de encabezados para identificar cada valor:
+
+| Job                 | Qué muestran las columnas                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| `avg_by_category` | Categoría, promedio por transacción (COP), monto total (COP), cantidad de transacciones       |
+| `peak_hours`      | Hora del día, cantidad de transacciones en esa hora                                            |
+| `top_merchants`   | Comercio, cantidad de transacciones (los 10 más frecuentes)                                    |
+| `fraud_by_city`   | Ciudad, transacciones fraudulentas, total de transacciones, proporción de fraude (entre 0 y 1) |
+| `payment_methods` | Método de pago, cantidad de transacciones, monto total (COP)                                   |
 
 Los combiners agregan sumas y conteos (no promedios parciales). Los registros inválidos se omiten y se registran en
 contadores de Hadoop.
@@ -200,11 +229,80 @@ Sí. Usa `make up`, `make load`, `make jobs` y `make verify`; Airflow es opciona
 
 ## Tolerancia a fallos (experimentos del laboratorio)
 
+Ejecuta estos experimentos con el clúster levantado y los datos ya cargados (`make up` y `make load`).
+Cada experimento detiene o reinicia un contenedor Hadoop y luego lo inicia de nuevo; no ejecutes `make clean`
+durante la prueba. El nodo `datanode2` es el objetivo predeterminado del primer experimento.
+
+### Git Bash o WSL2
+
+Desde la carpeta del proyecto (`hdfs-mapreduce-lab/`), captura la salida completa de cada experimento:
+
 ```bash
-make ft-datanode
-make ft-nodemanager
-make ft-put
+set -o pipefail
+mkdir -p evidence/fault-tolerance
+make ft-datanode 2>&1 | tee evidence/fault-tolerance/01-datanode.log
+make ft-put 2>&1 | tee evidence/fault-tolerance/02-restart-datanode-during-put.log
+./scripts/05_ft_nodemanager.sh 0.0005 2>&1 | tee evidence/fault-tolerance/03-nodemanager-during-mapreduce.log
+make verify 2>&1 | tee evidence/fault-tolerance/04-cluster-after-tests.log
 ```
 
-Estos experimentos interrumpen nodos Hadoop para observar re-replicación HDFS y reintentos de tareas. Airflow no
-reemplaza los mecanismos de recuperación de HDFS/YARN.
+`set -o pipefail` hace que un fallo del comando también se refleje en el código de salida del pipeline.
+El argumento `0.0005` reduce la pausa por línea para que el job de prueba no tarde demasiado; `make ft-nodemanager`
+usa el valor predeterminado más lento (`0.005`).
+
+### Windows PowerShell
+
+Desde la carpeta del proyecto, también puedes ejecutar los mismos scripts con Git for Windows Bash y guardar
+sus salidas en archivos:
+
+```powershell
+New-Item -ItemType Directory -Force .\evidence\fault-tolerance | Out-Null
+& 'C:\Program Files\Git\bin\bash.exe' -c 'set -o pipefail; ./scripts/04_ft_datanode.sh 2>&1 | tee evidence/fault-tolerance/01-datanode.log'
+if ($LASTEXITCODE -ne 0) { throw 'Falló el experimento DataNode' }
+
+& 'C:\Program Files\Git\bin\bash.exe' -c 'set -o pipefail; ./scripts/06_ft_restart_put.sh 2>&1 | tee evidence/fault-tolerance/02-restart-datanode-during-put.log'
+if ($LASTEXITCODE -ne 0) { throw 'Falló el experimento de escritura HDFS' }
+
+& 'C:\Program Files\Git\bin\bash.exe' -c 'set -o pipefail; ./scripts/05_ft_nodemanager.sh 0.0005 2>&1 | tee evidence/fault-tolerance/03-nodemanager-during-mapreduce.log'
+if ($LASTEXITCODE -ne 0) { throw 'Falló el experimento NodeManager' }
+
+& 'C:\Program Files\Git\bin\bash.exe' -c 'set -o pipefail; ./scripts/03_verify.sh 2>&1 | tee evidence/fault-tolerance/04-cluster-after-tests.log'
+if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación posterior' }
+```
+
+### Qué observar
+
+1. **DataNode apagado (`make ft-datanode`)**: detiene `datanode2`; el NameNode debe marcarlo como muerto,
+   volver a replicar los bloques de `/lab/input/transactions` y permitir leer los datos con el mismo MD5.
+   Luego el script vuelve a iniciar el DataNode. La comprobación de réplicas se limita a ese directorio para
+   no confundir bloques de otros directorios con la entrada del experimento.
+2. **Reinicio durante escritura (`make ft-put`)**: reinicia `datanode3` mientras se escribe un archivo de prueba
+   en HDFS; el `put` debe terminar y el MD5 almacenado en HDFS debe coincidir con el local. El archivo temporal
+   se elimina al terminar.
+3. **NodeManager interrumpido durante MapReduce (`./scripts/05_ft_nodemanager.sh 0.0005`)**: mata abruptamente
+   un NodeManager mientras corre un job lento, observa el estado del nodo y el resultado/reintentos del job, y
+   vuelve a iniciar el contenedor. Consulta también los logs del job y la interfaz de YARN.
+4. **Verificación final (`make verify`)**: comprueba contenedores, HDFS, YARN, aplicaciones y los resultados
+   existentes del pipeline.
+
+Las capturas de consola quedan en `evidence/fault-tolerance/`; la carpeta también puede incluir capturas PNG de
+las interfaces HDFS/YARN. El experimento del NodeManager y el de escritura generan además logs del cliente en
+`results/ft_slow_job.log` y `results/ft_put.log`. Conserva las evidencias de una corrida antes de repetirla.
+HDFS/YARN realizan la recuperación; Airflow no sustituye esos mecanismos.
+
+### Evidencias de la corrida
+
+- [Caída de DataNode: detección, re-replicación y MD5](./evidence/fault-tolerance/01-datanode.log):
+  se observó `live=2`, `dead=1`, los bloques under-replicated pasaron de 12 a 0 y el MD5 antes/después coincidió.
+- [Reinicio durante escritura HDFS](./evidence/fault-tolerance/02-restart-datanode-during-put.log):
+  el `put` de 300 MB terminó con código 0, el cliente excluyó el DataNode reiniciado y el MD5 local/HDFS coincidió.
+- [Fallo de NodeManager durante MapReduce](./evidence/fault-tolerance/03-nodemanager-during-mapreduce.log):
+  YARN marcó el nodo como `LOST`; el job finalizó `SUCCEEDED`, con tareas Map/Reduce relanzadas, y el contenedor se inició de nuevo.
+- [Verificación final del clúster y resultados](./evidence/fault-tolerance/04-cluster-after-tests.log):
+  los cinco análisis del dataset pasaron la validación independiente de un millón de transacciones.
+- Capturas de las [aplicaciones YARN](./evidence/fault-tolerance/05-yarn-applications.png),
+  los [tres DataNodes recuperados](./evidence/fault-tolerance/06-hdfs-datanodes-recovered.png) y
+  el [job MapReduce exitoso](./evidence/fault-tolerance/07-yarn-job-success.png).
+
+Nota: el `fsck /` global ya reportaba 6 bloques under-replicated antes de estos experimentos y continuó reportándolos
+al final; el directorio de entrada usado por la prueba DataNode reportó 0 under-replicated y 0 bloques corruptos.

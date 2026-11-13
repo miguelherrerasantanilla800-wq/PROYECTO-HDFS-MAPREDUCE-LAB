@@ -7,10 +7,35 @@ import os
 import sys
 from collections import Counter, defaultdict
 
+RESULT_HEADERS = {
+    "avg_by_category": [
+        "Categoría",
+        "Promedio por transacción (COP)",
+        "Monto total (COP)",
+        "Cantidad de transacciones",
+    ],
+    "peak_hours": ["Hora del día", "Cantidad de transacciones"],
+    "top_merchants": ["Comercio", "Cantidad de transacciones"],
+    "fraud_by_city": [
+        "Ciudad",
+        "Transacciones fraudulentas",
+        "Total de transacciones",
+        "Proporción de fraude",
+    ],
+    "payment_methods": [
+        "Método de pago",
+        "Cantidad de transacciones",
+        "Monto total (COP)",
+    ],
+}
 
-def load_tsv(path):
+
+def load_tsv(path, job_name):
     with open(path, encoding="utf-8") as source:
-        return [line.rstrip("\n").split("\t") for line in source if line.strip()]
+        rows = [line.rstrip("\n").split("\t") for line in source if line.strip()]
+    if not rows or rows[0] != RESULT_HEADERS[job_name]:
+        raise ValueError(f"encabezado ausente o incorrecto para {job_name}")
+    return rows[1:]
 
 
 def expected_results(data):
@@ -42,7 +67,10 @@ def expected_results(data):
 
 
 def check_avg_by_category(path, expected):
-    got = {row[0]: (float(row[1]), int(row[2]), int(row[3])) for row in load_tsv(path)}
+    got = {
+        row[0]: (float(row[1]), int(row[2]), int(row[3]))
+        for row in load_tsv(path, "avg_by_category")
+    }
     ok = set(got) == set(expected) and all(
         got[key][2] == expected[key][1]
         and got[key][1] == expected[key][0]
@@ -53,19 +81,22 @@ def check_avg_by_category(path, expected):
 
 
 def check_peak_hours(path, expected):
-    got = {row[0]: int(row[1]) for row in load_tsv(path)}
+    got = {row[0]: int(row[1]) for row in load_tsv(path, "peak_hours")}
     top = ", ".join(f"{hour}h" for hour, _ in expected.most_common(3))
     return got == dict(expected), f"top-3 horas: {top}"
 
 
 def check_top_merchants(path, expected):
-    got = [(row[0], int(row[1])) for row in load_tsv(path)]
+    got = [(row[0], int(row[1])) for row in load_tsv(path, "top_merchants")]
     wanted = sorted(expected.items(), key=lambda item: (-item[1], item[0]))[:10]
     return got == wanted, f"{len(got)} comercios; top 1: {got[0][0]} ({got[0][1]})" if got else "vacío"
 
 
 def check_fraud_by_city(path, expected):
-    got = {row[0]: (int(row[1]), int(row[2]), float(row[3])) for row in load_tsv(path)}
+    got = {
+        row[0]: (int(row[1]), int(row[2]), float(row[3]))
+        for row in load_tsv(path, "fraud_by_city")
+    }
     wanted = {city: (fraud, total) for city, (fraud, total) in expected.items()}
     ok = set(got) == set(wanted) and all(
         got[city][:2] == wanted[city]
@@ -76,7 +107,10 @@ def check_fraud_by_city(path, expected):
 
 
 def check_payment_methods(path, expected):
-    got = {row[0]: (int(row[1]), int(row[2])) for row in load_tsv(path)}
+    got = {
+        row[0]: (int(row[1]), int(row[2]))
+        for row in load_tsv(path, "payment_methods")
+    }
     wanted = {method: (count, amount) for method, (amount, count) in expected.items()}
     return got == wanted, f"{len(got)} métodos; {sum(row[0] for row in got.values())} transacciones"
 

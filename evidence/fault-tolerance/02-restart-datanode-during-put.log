@@ -1,0 +1,25 @@
+
+==> Creando archivo de 300 MB dentro del NameNode (/tmp/big.bin)
+md5(local) = ce76cb06bb52488fff3091792e5f8fe1  -
+
+==> Subiendo a HDFS en segundo plano (bloques de 4 MB para tener muchos pipelines)
+
+==> FALLA: docker restart datanode3 durante la escritura
+hdfs put terminó con código 0
+--- mensajes del cliente (recuperación de pipeline):
+	at org.apache.hadoop.hdfs.DataStreamer.createBlockOutputStream(DataStreamer.java:1827)
+	at org.apache.hadoop.hdfs.DataStreamer.nextBlockOutputStream(DataStreamer.java:1728)
+	at org.apache.hadoop.hdfs.DataStreamer.run(DataStreamer.java:713)
+2026-11-13 01:56:51,688 WARN hdfs.DataStreamer: Abandoning BP-229164965-172.24.0.2-1794519476617:blk_1073742518_1694
+2026-11-13 01:56:51,706 WARN hdfs.DataStreamer: Excluding datanode DatanodeInfoWithStorage[172.24.0.3:9866,DS-8272fca2-56ad-4eb0-8056-08af9b75e5f7,DISK]
+
+==> Integridad
+md5(HDFS)  = ce76cb06bb52488fff3091792e5f8fe1  -
+[OK] Archivo íntegro: la escritura sobrevivió al reinicio
+Connecting to namenode via http://namenode:9870/fsck?ugi=hadoop&path=%2Flab%2Fbig.bin
+Status: HEALTHY
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Average block replication:	2.0
+ Corrupt blocks:		0
+ Corrupt block groups:		0

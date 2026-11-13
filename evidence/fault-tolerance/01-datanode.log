@@ -1,0 +1,40 @@
+
+==> ANTES: réplicas y checksum de los datos
+Status: HEALTHY
+ Total blocks (validated):	20 (avg. block size 12517745 B)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Average block replication:	2.0
+md5(antes) = f30aee89166fcc5358c85d602b218e1c  -
+
+==> FALLA: docker stop datanode2
+
+==> Observando (dfs.heartbeat.interval=3s, recheck=10s -> 'Dead' tras ~50 s)
+[t=  9s] live=3 dead=0 under-replicated=0
+[t= 22s] live=3 dead=0 under-replicated=0
+[t= 36s] live=3 dead=0 under-replicated=0
+[t= 49s] live=3 dead=0 under-replicated=0
+[t= 63s] live=2 dead=1 under-replicated=12
+[t= 77s] live=2 dead=1 under-replicated=1
+[t= 91s] live=2 dead=1 under-replicated=1
+[t=103s] live=2 dead=1 under-replicated=1
+[t=116s] live=2 dead=1 under-replicated=0
+[OK] El NameNode detectó la caída y re-replicó los bloques en los DataNodes restantes
+Status: HEALTHY
+ Total blocks (validated):	20 (avg. block size 12517745 B)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Average block replication:	2.0
+
+==> LECTURA con un DataNode caído: el checksum debe ser idéntico
+md5(después) = f30aee89166fcc5358c85d602b218e1c  -
+[OK] Datos íntegros
+
+==> RECUPERACIÓN: docker start datanode2 (el NameNode eliminará réplicas sobrantes)
+Status: HEALTHY
+ Total blocks (validated):	20 (avg. block size 12517745 B)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Average block replication:	2.0
+
+Mira también: http://localhost:9870 -> Datanodes (In service / Dead) y 'docker logs namenode | grep -i -E "dead|replicat"'

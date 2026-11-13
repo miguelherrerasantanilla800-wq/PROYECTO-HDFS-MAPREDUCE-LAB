@@ -13,6 +13,22 @@ nn() {
 nnsh() {
   if [ "${HADOOP_CONTAINER_LOCAL:-0}" = 1 ]; then bash -c "$1"; else docker exec namenode bash -c "$1"; fi
 }
+result_header() {
+  case "$1" in
+    avg_by_category) printf 'Categoría\tPromedio por transacción (COP)\tMonto total (COP)\tCantidad de transacciones' ;;
+    peak_hours) printf 'Hora del día\tCantidad de transacciones' ;;
+    top_merchants) printf 'Comercio\tCantidad de transacciones' ;;
+    fraud_by_city) printf 'Ciudad\tTransacciones fraudulentas\tTotal de transacciones\tProporción de fraude' ;;
+    payment_methods) printf 'Método de pago\tCantidad de transacciones\tMonto total (COP)' ;;
+    *) printf 'Análisis desconocido: %s\n' "$1" >&2; return 2 ;;
+  esac
+}
+add_result_header() {
+  local name=$1 file=$2 tmp="${2}.tmp" header
+  header=$(result_header "$name") || return
+  { printf '%s\n' "$header"; cat "$file"; } > "$tmp"
+  mv "$tmp" "$file"
+}
 log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*"; }

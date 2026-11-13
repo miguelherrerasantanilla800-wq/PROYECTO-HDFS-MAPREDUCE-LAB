@@ -11,7 +11,8 @@ run_job() {
   nn hadoop jar "$STREAMING_JAR" -D mapreduce.job.name="lab-$name" "$@" \
     -output "$HDFS_OUT/$name"
   nnsh "hdfs dfs -cat '$HDFS_OUT/$name/part-*' > /lab/results/$name.tsv"
-  ok "$name -> results/$name.tsv  ($(wc -l < "results/$name.tsv") líneas)"
+  add_result_header "$name" "results/$name.tsv"
+  ok "$name -> results/$name.tsv  ($(($(wc -l < "results/$name.tsv") - 1)) registros)"
 }
 
 case "$name" in
